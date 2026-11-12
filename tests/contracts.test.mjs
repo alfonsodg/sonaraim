@@ -81,3 +81,28 @@ test("deploy/compose/docker-compose.yml parameterizes images, ports, and secrets
   assert.match(composeContent, /\$\{B2B_KMS_MASTER_KEY\}/);
   assert.doesNotMatch(composeContent, /POSTGRES_PASSWORD:\s*["']?[A-Za-z0-9]{4,}["']?$/m);
 });
+
+test("configs/nginx/sonaraim.conf.template and configs/prometheus/alerts.yml are parameterized", () => {
+  const nginx = fs.readFileSync(path.join(ROOT, "configs/nginx/sonaraim.conf.template"), "utf8");
+  assert.match(nginx, /\$\{SONARAIM_PUBLIC_DOMAIN\}/);
+  assert.match(nginx, /\$\{NODE_HTTP_PORT\}/);
+  assert.match(nginx, /\$\{B2B_HTTP_PORT\}/);
+  assert.match(nginx, /\$\{ADMIN_HTTP_PORT\}/);
+  assert.match(nginx, /\$\{APP_WEB_PORT\}/);
+  assert.match(nginx, /limit_req_zone/);
+  assert.match(nginx, /Strict-Transport-Security/);
+
+  const alerts = fs.readFileSync(path.join(ROOT, "configs/prometheus/alerts.yml"), "utf8");
+  assert.match(alerts, /SonaraimServiceDown/);
+  assert.match(alerts, /sonaraim_admin_upstream_reachable/);
+  assert.match(alerts, /sonaraim_node_relay_queued_total/);
+});
+
+test("deploy/scripts/backup-sonaraim.sh exists and passes syntax validation", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const scriptPath = path.join(ROOT, "deploy/scripts/backup-sonaraim.sh");
+  const content = fs.readFileSync(scriptPath, "utf8");
+  assert.match(content, /pg_dump/);
+  assert.match(content, /BGSAVE/);
+  execFileSync("bash", ["-n", scriptPath]);
+});

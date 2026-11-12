@@ -1,0 +1,30 @@
+# Prometheus alert rules for the Sonaraim decentralized messaging ecosystem
+groups:
+  - name: sonaraim.service.health
+    rules:
+      - alert: SonaraimServiceDown
+        expr: up{job=~"sonaraim-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Sonaraim service {{ $labels.job }} is unreachable"
+          description: "Prometheus failed to scrape /metrics from {{ $labels.instance }} for more than 1 minute."
+
+      - alert: SonaraimAdminUpstreamUnreachable
+        expr: sonaraim_admin_upstream_reachable == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sonaraim Admin cannot reach upstream {{ $labels.upstream }}"
+          description: "Operator telemetry probe from sonaraim-admin to {{ $labels.upstream }} failed."
+
+      - alert: SonaraimRelayQueueBacklogHigh
+        expr: sonaraim_node_relay_queued_total > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High store-and-forward queue depth on sonaraim-node"
+          description: "Queued envelopes exceeded 10,000 for 5 minutes."
