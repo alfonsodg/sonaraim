@@ -1,0 +1,24 @@
+# Example configuration file for sonaraim-node
+# All sensitive values and environment-specific endpoints must be overridden via environment variables.
+
+[node]
+id = "${NODE_ID}"
+environment = "${SONARAIM_ENV}"
+log_level = "${LOG_LEVEL}"
+
+[network]
+http_host = "${NODE_HTTP_HOST}"
+http_port = 8040
+p2p_listen_addr = "${NODE_P2P_LISTEN_ADDR}"
+bootstrap_peers = []
+
+[storage]
+envelope_ttl_seconds = 2592000
+redis_url = "${REDIS_URL}"
+s3_endpoint_url = "${S3_ENDPOINT_URL}"
+s3_bucket_media = "${S3_BUCKET_MEDIA}"
+s3_bucket_vault = "${S3_BUCKET_VAULT}"
+
+[identity]
+signing_key_path = "${NODE_SIGNING_KEY_PATH}"
+l2_anchor_enabled = false

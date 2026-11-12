@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "card_id": "ord_0193218a-7c40-7000-8000-1a2b3c4d5e6f",
+  "title": "Live Delivery Tracking — Order #4821",
+  "subtitle": "Arriving in 8 minutes",
+  "expires_at": "2026-11-12T21:00:00Z",
+  "components": [
+    {
+      "type": "LIVE_MAP",
+      "id": "courier_map",
+      "courier_label": "Carlos M. (Motorcycle)",
+      "eta_iso8601": "2026-11-12T19:55:00Z"
+    },
+    {
+      "type": "ACTION_ROW",
+      "id": "delivery_actions",
+      "actions": [
+        {
+          "action_id": "confirm_handover",
+          "label": "Confirm Code 8492",
+          "style": "PRIMARY",
+          "requires_user_signature": true
+        },
+        {
+          "action_id": "contact_support",
+          "label": "Talk to Support",
+          "style": "SECONDARY",
+          "requires_user_signature": false
+        }
+      ]
+    }
+  ],
+  "merchant_signature": {
+    "did": "did:web:delivery.example.com",
+    "key_id": "did:web:delivery.example.com#key-1",
+    "algorithm": "Ed25519",
+    "signature": "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e"
+  }
+}

@@ -1,0 +1,119 @@
+# Multi-service orchestration for the Sonaraim ecosystem
+# Zero-hardcode policy: all ports, credentials, and volume paths are parameterized via .env
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ${POSTGRES_VOLUME_PATH}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - ${REDIS_VOLUME_PATH}:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - ${MINIO_VOLUME_PATH}:/data
+
+  sonaraim-node:
+    image: ${NODE_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${NODE_HTTP_PORT}:${NODE_HTTP_PORT}"
+      - "${NODE_P2P_PORT}:${NODE_P2P_PORT}/udp"
+    environment:
+      SONARAIM_ENV: ${SONARAIM_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      NODE_ID: ${NODE_ID}
+      NODE_HTTP_HOST: ${NODE_HTTP_HOST}
+      NODE_HTTP_PORT: ${NODE_HTTP_PORT}
+      NODE_P2P_LISTEN_ADDR: ${NODE_P2P_LISTEN_ADDR}
+      NODE_BOOTSTRAP_PEERS: ${NODE_BOOTSTRAP_PEERS}
+      NODE_SIGNING_KEY_PATH: ${NODE_SIGNING_KEY_PATH}
+      NODE_ENVELOPE_TTL_SECONDS: ${NODE_ENVELOPE_TTL_SECONDS}
+      POSTGRES_DSN: ${POSTGRES_DSN}
+      REDIS_URL: ${REDIS_URL}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_BUCKET_MEDIA: ${S3_BUCKET_MEDIA}
+      S3_BUCKET_VAULT: ${S3_BUCKET_VAULT}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - ${NODE_DATA_VOLUME_PATH}:/var/lib/sonaraim
+
+  sonaraim-b2b:
+    image: ${B2B_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sonaraim-node:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${B2B_HTTP_PORT}:${B2B_HTTP_PORT}"
+      - "127.0.0.1:${B2B_GRPC_PORT}:${B2B_GRPC_PORT}"
+    environment:
+      SONARAIM_ENV: ${SONARAIM_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      B2B_HTTP_HOST: ${B2B_HTTP_HOST}
+      B2B_HTTP_PORT: ${B2B_HTTP_PORT}
+      B2B_GRPC_PORT: ${B2B_GRPC_PORT}
+      B2B_NODE_RPC_URL: ${B2B_NODE_RPC_URL}
+      B2B_KMS_MASTER_KEY: ${B2B_KMS_MASTER_KEY}
+      B2B_PROMO_RATE_LIMIT_RPS: ${B2B_PROMO_RATE_LIMIT_RPS}
+      B2B_INSTANT_CLIP_BASE_URL: ${B2B_INSTANT_CLIP_BASE_URL}
+      B2B_WEBHOOK_TIMEOUT_MS: ${B2B_WEBHOOK_TIMEOUT_MS}
+      POSTGRES_DSN: ${POSTGRES_DSN}
+      REDIS_URL: ${REDIS_URL}
+
+  sonaraim-admin:
+    image: ${ADMIN_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      - sonaraim-b2b
+    ports:
+      - "127.0.0.1:${ADMIN_HTTP_PORT}:${ADMIN_HTTP_PORT}"
+    environment:
+      VITE_B2B_API_BASE_URL: ${VITE_B2B_API_BASE_URL}
+      VITE_NODE_API_BASE_URL: ${VITE_NODE_API_BASE_URL}
+
+  sonaraim-app-web:
+    image: ${APP_WEB_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      - sonaraim-node
+    ports:
+      - "127.0.0.1:${APP_WEB_PORT}:${APP_WEB_PORT}"
+    environment:
+      PUBLIC_LIVEKIT_URL: ${PUBLIC_LIVEKIT_URL}
