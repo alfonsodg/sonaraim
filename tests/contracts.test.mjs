@@ -49,3 +49,35 @@ test("docs/ARCHITECTURE.md contains zero inline mermaid blocks and docs/DIAGRAMS
     "DIAGRAMS.md must contain mermaid blocks"
   );
 });
+
+test("docs/DEPLOYMENT.md documents Anti-Destruction contract, DNS names, and surgical updates", () => {
+  const deploymentPath = path.join(ROOT, "docs/DEPLOYMENT.md");
+  assert.equal(fs.existsSync(deploymentPath), true, "docs/DEPLOYMENT.md must exist");
+  const content = fs.readFileSync(deploymentPath, "utf8");
+  for (const requiredToken of [
+    "up -d --no-deps",
+    "down -v",
+    "sonaraim-node",
+    "sonaraim-b2b",
+    "sonaraim-admin",
+    "sonaraim-app-web",
+  ]) {
+    assert.equal(
+      content.includes(requiredToken),
+      true,
+      `docs/DEPLOYMENT.md must document "${requiredToken}"`
+    );
+  }
+});
+
+test("deploy/compose/docker-compose.yml parameterizes images, ports, and secrets without hardcodes", () => {
+  const composeContent = fs.readFileSync(
+    path.join(ROOT, "deploy/compose/docker-compose.yml"),
+    "utf8"
+  );
+  assert.match(composeContent, /\$\{POSTGRES_PASSWORD\}/);
+  assert.match(composeContent, /\$\{REDIS_PASSWORD\}/);
+  assert.match(composeContent, /\$\{S3_SECRET_ACCESS_KEY\}/);
+  assert.match(composeContent, /\$\{B2B_KMS_MASTER_KEY\}/);
+  assert.doesNotMatch(composeContent, /POSTGRES_PASSWORD:\s*["']?[A-Za-z0-9]{4,}["']?$/m);
+});
