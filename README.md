@@ -178,6 +178,7 @@ sonaraim/
 ## 📄 Documentation Catalog
 
 - **[Architecture Specification](docs/ARCHITECTURE.md)** — In-depth design of the 6 services, React Native mobile client, P2P MLS transport, Key Transparency log, and Enterprise E2EE Bridge.
+- **[Ecosystem Comparison](docs/COMPARISON.md)** — Detailed comparison tables: Sonaraim vs. WhatsApp, Telegram, Signal, Matrix, Session, XMPP, and Slack/MS Teams.
 - **[Visual Diagrams (Mermaid)](docs/DIAGRAMS.md)** — End-to-end topology, sequence, and state diagrams.
 - **[API & Protocol Reference](docs/API.md)** — B2B Gateway endpoints, WhatsApp migration adapter, and Relay Node APIs.
 - **[Configuration Guide](docs/CONFIGURATION.md)** — Complete environment variable catalog across all services and infrastructure components.
