@@ -195,11 +195,100 @@ Ingests external webhook events from Chatwoot, Zendesk, HubSpot, and Salesforce.
 
 ### 3.1 Sealed Sender Relay Endpoints
 
-- `POST /v1/relay/envelopes`: Submits an encrypted Sealed Sender envelope into an ephemeral mailbox queue (Bearer auth).
+- `POST /v1/relay/envelopes`: Submits an encrypted Sealed Sender envelope into an ephemeral mailbox queue (Bearer auth). Responds with `202 Accepted` returning `wake_up_token` and `wake_up_queued` (`true` when an OS push wake-up is queued for the registered token).
 - `GET /v1/relay/mailboxes/{mailbox_id}`: Drains non-expired envelopes for the recipient's anonymous mailbox.
 - `POST /v1/relay/mailboxes/{mailbox_id}/ack`: Acknowledges envelope delivery, evicting items and triggering atomic WAL compaction (Bearer auth).
 
-### 3.2 Key Transparency & Identity Endpoints
+### 3.2 Blind Push Notification Registration
+
+`POST /v1/push/register`
+
+Registers a blind push notification token for an anonymous recipient mailbox (Bearer auth). Device tokens are stored and verified as SHA-256 hashes (`token_hash`), ensuring zero plaintext token or sender metadata leakage at the relay layer.
+
+**Request Payload**:
+
+```json
+{
+  "mailbox_id": "mbx_user_alice_99",
+  "platform": "apns",
+  "device_token": "98a7b6c5d4e3f210a1b2c3d4e5f6...",
+  "endpoint_hint": "https://push.apple.com"
+}
+```
+
+Supported `platform` values: `apns`, `fcm`, `webpush`.
+
+**Response (`200 OK`)**:
+
+```json
+{
+  "status": "ok",
+  "registered": true,
+  "mailbox_id": "mbx_user_alice_99",
+  "platform": "apns",
+  "token_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+```
+
+### 3.3 Ephemeral Signals (Typing Indicators & Receipts)
+
+Lightweight, in-memory ephemeral signals that automatically expire and are purged without writing to WAL storage.
+
+`POST /v1/relay/signals`
+
+Records an ephemeral typing indicator or delivery/read receipt for a target mailbox (Bearer auth).
+
+**Request Payload**:
+
+```json
+{
+  "mailbox_id": "mbx_user_alice_99",
+  "sender_did": "did:sonaraim:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH",
+  "signal_type": "typing",
+  "envelope_id": "env_0193218a-7c40-7000-8000-1a2b3c4d5e6f"
+}
+```
+
+Supported `signal_type` values:
+
+- `typing`: Composing indicator (default TTL 30 seconds).
+- `delivered`: Message receipt confirmation (default TTL 300 seconds).
+- `read`: Read receipt confirmation (default TTL 300 seconds).
+
+**Response (`200 OK`)**:
+
+```json
+{
+  "status": "ok",
+  "recorded": true,
+  "mailbox_id": "mbx_user_alice_99",
+  "signal_type": "typing",
+  "expires_at_epoch": 1700000030
+}
+```
+
+`GET /v1/relay/signals/{mailbox_id}`
+
+Drains and returns all active non-expired ephemeral signals for the recipient's mailbox. Retrieved signals are evicted immediately upon reading.
+
+**Response (`200 OK`)**:
+
+```json
+{
+  "mailbox_id": "mbx_user_alice_99",
+  "signals": [
+    {
+      "mailbox_id": "mbx_user_alice_99",
+      "sender_did": "did:sonaraim:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH",
+      "signal_type": "typing",
+      "envelope_id": null,
+      "expires_at_epoch": 1700000030
+    }
+  ]
+}
+```
+
+### 3.4 Key Transparency & Identity Endpoints
 
 `GET /v1/identity/{did}`
 
@@ -225,14 +314,14 @@ Returns the latest verified DID document, MLS KeyPackage bundle, and cryptograph
 - `GET /v1/identity/by-phone/{token}`: Looks up a registered DID by blinded or hashed phone token.
 - `GET /v1/identity/anchors/latest`: Returns the latest L2 state-root anchor receipt.
 
-### 3.3 P2P Federation & Live UDP Gossip
+### 3.5 P2P Federation & Live UDP Gossip
 
 - `GET /v1/p2p/sync`: Returns local Merkle tree size, root hash, and connected peer states.
 - `POST /v1/p2p/gossip`: Ingests gossiped Signed Tree Head datagrams and evaluates equivocation.
 - `POST /v1/p2p/peers`: Registers or updates a peer's QUIC multiaddr and RPC endpoint (Bearer auth).
 - `GET /v1/p2p/peers`: Lists active mesh peers.
 
-### 3.4 Private Set Intersection & Media Presigning
+### 3.6 Private Set Intersection & Media Presigning
 
 - `POST /v1/contacts/psi`: Evaluates blinded phone hashes against the registered phone directory without exposing address books.
 - `POST /v1/media/presign`: Generates S3/MinIO presigned PUT upload URLs for client-side encrypted attachments.

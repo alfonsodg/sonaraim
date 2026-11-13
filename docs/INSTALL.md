@@ -81,6 +81,10 @@ cargo test --manifest-path sonaraim-b2b/Cargo.toml
 # 5. Admin console test verification
 npm test --prefix sonaraim-admin
 (cd sonaraim-admin && npx --yes markdownlint-cli2 "*.md" "docs/*.md")
+
+# 6. Mobile app verification
+npm test --prefix sonaraim-app/mobile
+(cd sonaraim-app && npx --yes markdownlint-cli2 "*.md" "docs/*.md")
 ```
 
 ---
@@ -98,9 +102,29 @@ systemctl reload nginx
 # 2. Launch container stack via Docker Compose
 docker compose -f deploy/compose/docker-compose.yml --env-file .env up -d
 
+# Optional: launch LiveKit SFU for voice/video calls
+docker compose -f deploy/compose/docker-compose.yml --profile calls --env-file .env up -d
+
 # 3. Verify health across all services
 curl -fsS "http://127.0.0.1:${NODE_HTTP_PORT}/health"
 curl -fsS "http://127.0.0.1:${B2B_HTTP_PORT}/health"
 curl -fsS "http://127.0.0.1:${ADMIN_HTTP_PORT}/health"
 curl -fsS "http://127.0.0.1:${APP_WEB_PORT}/health"
+```
+
+---
+
+## 6. React Native Mobile App (EAS Build)
+
+The mobile client is packaged under `sonaraim-app/mobile` and provides full WhatsApp-parity messaging with Expo Application Services (EAS) native build profiles (`development`, `preview`, `production`) defined in `eas.json`:
+
+```bash
+# 1. Install dependencies and run tests
+cd sonaraim-app/mobile
+npm install
+npm test
+
+# 2. Build native release artifacts with EAS CLI
+npm run build:android    # eas build --platform android --profile production (AAB)
+npm run build:ios        # eas build --platform ios --profile production (IPA)
 ```

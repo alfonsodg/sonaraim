@@ -37,7 +37,7 @@ This repository (`sonaraim`) serves as the **Coordinator / Control Repository** 
 | **`sonaraim-node`** | Rust (`libp2p`, QUIC, OpenMLS) | Decentralized P2P/Federated core relay node, ephemeral store-and-forward queues, UDP gossip transport, and Key Transparency Merkle log. |
 | **`sonaraim-b2b`** | Rust / Go (gRPC, REST, PostgreSQL, Redis) | Enterprise E2EE Termination Bridge, WhatsApp Cloud API compatibility adapter, Signed Card Engine, Consent Gate, and Smart Fallback Engine. |
 | **`sonaraim-admin`** | React, TypeScript, Vite, Node.js | Dual-console web app for **Node Operators** (mesh telemetry, Merkle sync, KYB) and **B2B Tenants** (seat quotas, visual Card Studio, webhooks). |
-| **`sonaraim-app`** | React Native (`sonaraim-app/mobile`), TypeScript, LiveKit | B2C Mobile (iOS & Android via React Native), Desktop, and Instant Web / App Clip client with Dual Inbox, native card renderer, and Passkey ZK Vault. |
+| **`sonaraim-app`** | React Native (`sonaraim-app/mobile`), Expo/EAS, TypeScript, LiveKit | B2C Mobile (iOS & Android via Expo/EAS native builds), Desktop, and Instant Web client with Dual Inbox, WhatsApp-parity features (E2EE media, MLS groups, reactions/receipts, 24h status), declarative cards, and Passkey ZK Vault. |
 
 ---
 
@@ -54,6 +54,9 @@ This repository (`sonaraim`) serves as the **Coordinator / Control Repository** 
    - Interactive experiences are defined via strict, cryptographically signed JSON schemas ([configs/schemas/sonaraim-card.schema.json](configs/schemas/sonaraim-card.schema.json)) and rendered using native OS primitives—eliminating WebView XSS, UI spoofing, and phishing vectors.
 5. **Production Infrastructure & Observability**:
    - Edge reverse-proxy with system Nginx, TLS termination via Certbot, Prometheus service alerts (`configs/prometheus/alerts.yml`), and automated database/WAL volume backups (`deploy/scripts/backup-sonaraim.sh`).
+6. **Milestone 14 WhatsApp-Parity Mobile Client & LiveKit SFU Calling**:
+   - Fully featured sovereign mobile client in `sonaraim-app/mobile` built with React Native and Expo SDK 51, providing EAS native build automation (`eas.json`), client-side AES-256-GCM multimedia encryption, MLS ratcheted group messaging, emoji reactions, quote replies, typing indicators, delivery/read receipts, 24h ephemeral status/stories, and blind push token registration.
+   - Optional dedicated LiveKit SFU service orchestrated via `docker compose --profile calls up -d` for end-to-end encrypted WebRTC audio and video calling rooms.
 
 ---
 

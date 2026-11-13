@@ -100,7 +100,20 @@ Rendered with `envsubst` from `configs/nginx/sonaraim.conf.template`:
 
 ---
 
-## 6. Backup & Disaster Recovery Automation
+## 6. Optional LiveKit SFU Calling Service (`calls` profile)
+
+Activated via `docker compose --profile calls up -d` in `deploy/compose/docker-compose.yml`:
+
+| Variable | Required | Description |
+| :--- | :--- | :--- |
+| `LIVEKIT_IMAGE` | No | Container image for LiveKit SFU server (default: `livekit/livekit-server:latest`). |
+| `LIVEKIT_HTTP_PORT` | No | Host bind TCP port for LiveKit HTTP signaling (default: `7880`). |
+| `LIVEKIT_RTC_PORT` | No | Host bind TCP port for LiveKit RTC media traffic (default: `7881`). |
+| `LIVEKIT_KEYS` | Cond. | API key and secret mapping string (e.g., `devkey: secret`). Required when `calls` profile is activated. |
+
+---
+
+## 7. Backup & Disaster Recovery Automation
 
 Configured in `deploy/scripts/backup-sonaraim.sh`:
 
