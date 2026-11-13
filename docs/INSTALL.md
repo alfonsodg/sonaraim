@@ -15,6 +15,21 @@ Ensure the following tools (latest stable versions) are installed on your workst
 - **Markdownlint CLI** (`npx --yes markdownlint-cli2`) for documentation quality assurance
 - **OpenSSL & Certbot** (on target deployment hosts for TLS automation)
 
+### Hardware, OS & Network Requirements (Per Node)
+
+| Deployment Profile | OS / Architecture | CPU | RAM | Storage (NVMe/SSD) | Network |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Relay Node Only (`sonaraim-node`)** | Linux x86_64 / arm64 | 2 vCPU | 2 GB | 20 GB (WAL & Merkle log) | 100 Mbps+ |
+| **Full Stack (Node + B2B + Admin + App + DB/MinIO)** | Linux x86_64 / arm64 | 4 vCPU | 8 GB | 80 GB | 1 Gbps |
+| **Full Stack + LiveKit Video SFU (`--profile calls`)** | Linux x86_64 / arm64 | 8 vCPU | 16 GB | 100 GB+ | 1 Gbps+ low-latency |
+
+Required firewall ports on the public host:
+
+- **`80/tcp`, `443/tcp`**: Nginx reverse proxy & Certbot TLS termination.
+- **`9031/udp`**: P2P QUIC / UDP datagram gossip (`NODE_P2P_PORT`).
+- **`7881/tcp`** *(optional `--profile calls`)*: LiveKit WebRTC media transport.
+- Internal service ports (`8031`, `8041`, `8051`, `8061`) remain bound to `127.0.0.1` behind Nginx.
+
 > **Important**: In compliance with engineering rules, never install Docker engines or database servers directly on local development workstations; full multi-container orchestration runs on designated remote test environments documented in `REMOTE.md`.
 
 ---
