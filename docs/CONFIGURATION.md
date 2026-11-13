@@ -4,6 +4,11 @@ In strict compliance with the **Zero-Hardcode** mandate, all runtime parameters 
 
 A complete template is provided in [samples/.env.example](../samples/.env.example).
 
+## Canonical Reverse-DNS Application Identifiers (GitHub Namespace)
+
+- **Primary Application ID**: `io.github.alfonsodg.sonaraim` (used for mobile iOS `bundleIdentifier`, Android `package`, desktop packaging, and registry attestations)
+- **Component Namespaces**: `io.github.alfonsodg.sonaraim.protocol`, `io.github.alfonsodg.sonaraim.node`, `io.github.alfonsodg.sonaraim.b2b`, `io.github.alfonsodg.sonaraim.admin`, `io.github.alfonsodg.sonaraim.app`
+
 ---
 
 ## 1. Global & Shared Infrastructure Variables
