@@ -1,4 +1,4 @@
-# Ubiquitous Domain Glossary (GLOSSARY.md)
+# Ubiquitous Domain Glossary (`docs/GLOSSARY.md`)
 
 This glossary defines the canonical domain terminology used across code, schemas, APIs, and documentation in the **Sonaraim** ecosystem.
 
@@ -8,7 +8,7 @@ This glossary defines the canonical domain terminology used across code, schemas
 
 ### Blind Push Notification
 
-A zero-metadata wake-up signal dispatched via Apple APNs, Google FCM, or UnifiedPush containing only a random wake-up token. The mobile client wakes up in the background, connects to `sonaraim-node` over QUIC, fetches the pending **Sealed Sender** envelope, and decrypts it locally—preventing Apple and Google from observing who messaged the user or what the message contains.
+A zero-metadata wake-up signal dispatched via Apple APNs, Google FCM, or UnifiedPush containing only an opaque, random wake-up token. The mobile client wakes up in the background, connects to `sonaraim-node` over QUIC, fetches pending **Sealed Sender** envelopes, and decrypts them locally—preventing Apple and Google from observing who messaged the user or what the message contains.
 
 ### Consent Token (`ConsentToken`)
 
@@ -42,6 +42,10 @@ A privacy-preserving cryptographic technique used during social graph activation
 
 An outer cryptographic envelope that encrypts the sender's identity certificate and MLS ciphertext toward the recipient's mailbox key. Relay nodes (`sonaraim-node`) see only the destination `MailboxID` and an anti-abuse token, hiding the sender's identity from the transport network.
 
+### Signed Tree Head (STH) Gossip
+
+A periodic peer-to-peer gossip protocol where `sonaraim-node` instances exchange signed root hashes of their Key Transparency trees over non-blocking UDP sockets. If a node observes two conflicting root hashes for the same tree size, it immediately raises an equivocation alert, detecting compromised nodes or split-view attacks.
+
 ### Smart Fallback Engine
 
 The component in `sonaraim-b2b` that detects when a target recipient has not yet onboarded onto Sonaraim and automatically delivers a compact SMS, RCS, or Email containing a signed **Instant Web / App Clip Card** link—guaranteeing 100% day-one deliverability for enterprise migrations.
@@ -53,6 +57,14 @@ A strictly typed, Ed25519-signed declarative JSON payload ([configs/schemas/sona
 ### Sovereign Node
 
 A dedicated instance of `sonaraim-node` (and optionally `sonaraim-b2b`) deployed within a regulated enterprise's own infrastructure (e.g., banking, healthcare, government) that federates with the global Sonaraim P2P mesh while keeping all customer payloads and audit logs strictly inside the organization's compliance boundary.
+
+### WAL Compaction (Write-Ahead Log Compaction)
+
+The background maintenance procedure (`compact_wal_file`) in `sonaraim-node` that filters out acknowledged and expired envelopes from the active Write-Ahead Log on disk, rewriting remaining active entries atomically to prevent resurrecting deleted envelopes and bounding disk usage.
+
+### WhatsApp Cloud API Adapter
+
+A compatibility layer in `sonaraim-b2b` that accepts standard Meta WhatsApp Business Cloud API JSON payloads and transparently converts legacy templates and interactive components into native `Sonaraim Cards`.
 
 ### Zero-Knowledge Key Vault (ZK Vault)
 

@@ -1,4 +1,4 @@
-# System Architecture (ARCHITECTURE.md)
+# System Architecture (`docs/ARCHITECTURE.md`)
 
 > **Note**: In compliance with project documentation rules, this file contains architectural specifications and ASCII diagrams only. For visual Mermaid diagrams, see [docs/DIAGRAMS.md](DIAGRAMS.md).
 
@@ -11,7 +11,7 @@
 1. **Surveillance & Metadata Centralization (B2C)**: Centralized messengers monetize social graphs and metadata, while naive blockchain messengers suffer from multi-second latency, permanent metadata exposure on public ledgers, and per-message gas fees.
 2. **Predatory Per-Message Tolls & Phishing Vulnerability (B2B)**: Incumbent B2B APIs charge punitive per-template fees for utility/OTP notifications, restrict AI agent integrations, and force users out of chat into slow mobile browsers.
 
-Sonaraim resolves both challenges by decoupling **Real-Time Encrypted Transport (Data Plane)** from **Verifiable Identity & Governance (Control Plane)** across **5 modular services**.
+Sonaraim resolves both challenges by decoupling **Real-Time Encrypted Transport (Data Plane)** from **Verifiable Identity & Governance (Control Plane)** across **6 modular repositories**.
 
 ---
 
@@ -23,11 +23,12 @@ Sonaraim resolves both challenges by decoupling **Real-Time Encrypted Transport 
 |                                                                                   |
 |  +-------------------------------------+   +-----------------------------------+  |
 |  |            sonaraim-app             |   |          sonaraim-admin           |  |
-|  |  (Mobile iOS/Android, Desktop, Web) |   |   (Node Operator & B2B Console)   |  |
-|  |  - Dual Inbox (Personal / Services) |   |  - Mesh Telemetry & KYB Approval  |  |
-|  |  - Native Zero-HTML Card Renderer   |   |  - Tenant Seats & RBAC            |  |
-|  |  - Passkey + WebAuthn PRF ZK Vault  |   |  - Visual Card Studio & Preview   |  |
-|  |  - Instant Web / App Clip Fallback  |   |  - Webhook, AI & CRM Routing      |  |
+|  |  (Mobile iOS/Android React Native,  |   |   (Node Operator & B2B Console)   |  |
+|  |   Desktop, Instant Web/App Clip)    |   |  - Mesh Telemetry & KYB Approval  |  |
+|  |  - Dual Inbox (Personal / Services) |   |  - Tenant Seats & RBAC            |  |
+|  |  - Native Zero-HTML Card Renderer   |   |  - Visual Card Studio & Preview   |  |
+|  |  - Passkey + WebAuthn PRF ZK Vault  |   |  - Webhook, AI & CRM Routing      |  |
+|  |  - Instant Web / App Clip Fallback  |   |  - Prometheus Scrape (/metrics)   |  |
 |  +------------------+------------------+   +-----------------+-----------------+  |
 +---------------------|----------------------------------------|--------------------+
                       | QUIC / WebTransport                    | HTTPS / REST / gRPC
@@ -42,8 +43,9 @@ Sonaraim resolves both challenges by decoupling **Real-Time Encrypted Transport 
 |  - libp2p QUIC Mesh & Gossipsub        |   |  - 1-Click WhatsApp Cloud Adapter    |
 |  - Sealed Sender Mailbox Routing       |   |  - Ed25519 Signed Card Engine        |
 |  - Ephemeral Store-and-Forward         |   |  - Cryptographic Consent Gate        |
-|  - Blind Push Wake-Up Dispatcher       |   |  - AI Agent gRPC & CRM Connectors    |
-|                                        |   |  - Smart Fallback (SMS / Magic Link) |
+|  - Live UDP Gossip Transport           |   |  - AI Agent gRPC & CRM Connectors    |
+|  - Blind Push Wake-Up Dispatcher       |   |  - Smart Fallback (SMS / Magic Link) |
+|                                        |   |  - Zero-Markup Payment Intents       |
 |  [Control Plane]                       |   +------------------+-------------------+
 |  - Key Transparency Merkle Tree        |                      |
 |  - DID Resolver (did:sonaraim/did:web) |                      |
@@ -54,148 +56,136 @@ Sonaraim resolves both challenges by decoupling **Real-Time Encrypted Transport 
                                           |
                                           v
 +-----------------------------------------------------------------------------------+
-|                        MEDIA, STORAGE & INFRASTRUCTURE LAYER                      |
+|                  EDGE REVERSE PROXY, MONITORING & STORAGE LAYER                   |
 |                                                                                   |
-|  +------------------------+  +------------------------+  +---------------------+  |
-|  |     LiveKit Edge       |  |   S3 / MinIO / R2      |  | PostgreSQL + Redis  |  |
-|  |  (WebRTC E2EE Voice &  |  | (Client-Side Encrypted |  | (B2B State, Queues, |  |
-|  |   Video SFU Mesh)      |  |  Media & ZK Vaults)    |  |  Merkle Snapshots)  |  |
-|  +------------------------+  +------------------------+  +---------------------+  |
+|  +---------------------+  +---------------------+  +---------------------------+  |
+|  |     System Nginx    |  |     Prometheus      |  |     Backup Automation     |  |
+|  |  - TLS (Certbot)    |  |  - Scrape /metrics  |  |  - Logical pg_dump        |  |
+|  |  - HSTS / CSP       |  |  - Service Down     |  |  - Redis BGSAVE           |  |
+|  |  - Rate Limiting    |  |  - High Queue Depth |  |  - Node WAL tar archive   |  |
+|  +----------+----------+  +----------+----------+  +-------------+-------------+  |
+|             |                        |                           |                |
+|             v                        v                           v                |
+|  +---------------------+  +---------------------+  +---------------------------+  |
+|  |   PostgreSQL 17     |  |       Redis 7       |  |     S3 / MinIO / R2       |  |
+|  | (B2B Tenant State)  |  | (Rate Limit/Cache)  |  | (Encrypted Media/ZK Vault)|  |
+|  +---------------------+  +---------------------+  +---------------------------+  |
 +-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Separation of Responsibilities (The 5 Core Services)
+## 3. Separation of Responsibilities (The 6 Services)
 
-### 3.1 `sonaraim-protocol` (Shared Specifications, Crypto & SDKs)
+### 3.1 `sonaraim` (Coordinator / Control Repository)
 
-- **Scope**: Single source of truth for wire contracts and cryptographic primitives.
+- **Scope**: Single source of truth for global architectural specifications, shared schemas, and deployment orchestration.
 - **Responsibilities**:
-  - Protobuf definitions for P2P relay envelopes, MLS key packages, Key Transparency proofs, and B2B gRPC services.
-  - Formal JSON Schema for **Sonaraim Cards** ([configs/schemas/sonaraim-card.schema.json](../configs/schemas/sonaraim-card.schema.json)).
-  - Core Rust library (`sonaraim-crypto`) compiled to native targets and WebAssembly (Wasm) for `sonaraim-node`, `sonaraim-b2b`, and `sonaraim-app`.
+  - Centralized documentation suite (`ARCHITECTURE.md`, `DIAGRAMS.md`, `API.md`, `CONFIGURATION.md`, `DEPLOYMENT.md`, `INSTALL.md`, `STANDARDS.md`, `GLOSSARY.md`).
+  - Formal JSON Schema definition for interactive **Sonaraim Cards** (`configs/schemas/sonaraim-card.schema.json`).
+  - Parameterized Nginx TLS reverse-proxy templates (`configs/nginx/sonaraim.conf.template`) and Certbot automation.
+  - Prometheus alerting rule specifications (`configs/prometheus/alerts.yml`).
+  - Multi-service Docker Compose orchestration (`deploy/compose/docker-compose.yml`) and automated disaster recovery scripts (`deploy/scripts/backup-sonaraim.sh`).
+  - Cross-service contract integrity tests (`tests/contracts.test.mjs`).
 
-### 3.2 `sonaraim-node` (Decentralized P2P Transport & Identity Core — Rust)
+### 3.2 `sonaraim-protocol` (Shared Specifications, Cryptography & Invariants)
 
-- **Scope**: High-performance, low-footprint daemon that forms the decentralized messaging mesh and verifiable identity directory. Can be operated by the core network, community operators, or enterprises running **Sovereign Nodes** (banks, hospitals, universities).
+- **Scope**: Canonical wire formats, envelope models, and cryptographic primitives.
 - **Responsibilities**:
-  - **P2P Transport Mesh**: Built on `libp2p` over QUIC and WebTransport. Routes encrypted **Sealed Sender** envelopes across nodes with sub-50ms hop latency.
-  - **IETF MLS Delivery Service**: Stores public `KeyPackage` bundles so peers can initiate asynchronous 1:1 or group sessions (up to 50,000+ members with logarithmic ratcheting cost).
-  - **Ephemeral Store-and-Forward**: Holds undelivered encrypted envelopes in bounded, TTL-expiring buckets while recipient devices are offline.
-  - **Blind Push Notification Dispatcher**: Emits zero-payload wake-up signals via APNs, FCM, or UnifiedPush so mobile OS background tasks pull and decrypt messages locally without exposing metadata to Apple or Google.
-  - **Verifiable Key Transparency & DID Directory**: Maintains an append-only Merkle Tree of identity bindings (`did:sonaraim` for users/nodes, `did:web` + DNSSEC + Ed25519 certificates for verified businesses). Periodically checkpoints Merkle state roots across validator nodes (with optional L2 anchoring).
+  - Sealed Sender outer envelope model (`src/envelope.rs`) enforcing 32-byte X25519 public keys, anonymous mailbox IDs, and TTL bounds.
+  - Declarative Sonaraim Card model and structural validator (`src/card.rs`) rejecting raw HTML and script execution.
+  - JSON Canonicalization Scheme (RFC 8785) hashing and Ed25519 signature validation (`src/crypto.rs`).
+  - Identity keyring rotation and revocation tracking (`src/keyring.rs`).
+  - MLS group tree ratcheting, epoch progression, and transcript hashing (`src/mls_group.rs`).
+  - Private Set Intersection blinded token evaluation (`src/psi.rs`).
+  - Anti-replay sliding window with FIFO eviction (`src/replay.rs`).
+  - Length-prefixed wire framing codec (`src/wire.rs`).
 
-### 3.3 `sonaraim-b2b` (Enterprise Gateway & E2EE Termination Bridge — Rust/Go)
+### 3.3 `sonaraim-node` (Decentralized P2P Relay & Key Transparency Core — Rust)
 
-- **Scope**: Developer-first B2B API platform and cryptographic termination bridge connecting enterprise backends, CRMs, and AI agents to the Sonaraim P2P mesh.
+- **Scope**: High-performance, low-footprint relay daemon maintaining the messaging mesh and verifiable identity directory.
 - **Responsibilities**:
-  - **Enterprise E2EE Termination Bridge**: Solves the incompatibility between device-bound E2EE and multi-agent enterprise workflows. End users encrypt messages to the enterprise's verified MLS group/identity; `sonaraim-b2b` (running either as a managed isolated enclave or on-premise alongside a Sovereign Node) terminates the MLS session and translates payloads into clean REST/gRPC events for the business's internal tools.
-  - **1-Click WhatsApp Cloud API Adapter**: Accepts standard Meta WhatsApp Business Cloud API payloads (`/v1/whatsapp-compat/messages`), translating legacy templates and interactive flows into native **Sonaraim Cards** in real time.
-  - **Signed Declarative Card Engine**: Validates card payloads against `sonaraim-card.schema.json`, attaches an Ed25519 signature using the business's verified DID key, and processes signed user action callbacks (cart checkout, appointment confirmation, document signing).
-  - **Cryptographic Consent & Anti-Spam Gate**: Enforces a strict separation between **Transactional Messages** (unlimited under flat-rate seat/capacity plans) and **Promotional Campaigns** (which require a cryptographically signed, non-expired `ConsentToken` issued by the recipient).
-  - **Smart Fallback Engine**: When a business messages a phone number or alias not yet onboarded on Sonaraim, returns an immediate structured status and optionally dispatches an SMS/RCS/Email fallback containing a cryptographic **Magic Link** that renders the interactive card inside an **Instant Web / App Clip** experience.
+  - **Sealed Sender Relay**: Routes encrypted envelopes exclusively by `mailbox_id` with TTL-bounded store-and-forward buckets.
+  - **Key Transparency Merkle Log**: Append-only cryptographic ledger tracking `did:sonaraim:` and `did:web:` public key commitments with logarithmic inclusion proofs.
+  - **Live UDP Gossip Transport**: Non-blocking UDP socket (`src/udp_gossip.rs`) exchanging compact `SignedTreeHead` datagrams with equivocation detection.
+  - **P2P Federation Sync**: Exchanges tree heads and peer lists over QUIC and HTTP.
+  - **Private Set Intersection (PSI)**: Blind contact discovery service (`/v1/contacts/psi`) matching blinded tokens without learning non-matching contacts.
+  - **S3 Presigning & Atomic WAL Compaction**: Generates presigned PUT upload URLs and compacts WAL storage files atomically upon envelope ACK.
+  - **Observability**: Exposes `/health` JSON status and `/metrics` Prometheus counters.
 
-### 3.4 `sonaraim-admin` (Admin & B2B Console Frontend — React/TypeScript)
+### 3.4 `sonaraim-b2b` (Enterprise Gateway & E2EE Termination Bridge — Rust/Go)
 
-- **Scope**: Multi-role web management portal separated into two permissioned workspaces:
-  1. **Network & Node Operator Console (Super Admin)**:
-     - Live P2P mesh topology, relay throughput, queue depth, and Merkle root synchronization status.
-     - KYB (Know Your Business) verification workflows, DNSSEC/`did:web` attestation audits, and spam reputation circuit breakers.
-  2. **Enterprise Tenant Console (B2B SaaS)**:
-     - Seat management, agent assignment, and role-based access control (RBAC).
-     - **Visual Card Studio**: Drag-and-drop and JSON editor for building, signing, and testing interactive `Sonaraim Cards`.
-     - Webhook, gRPC AI agent, and CRM connector configuration (Chatwoot, Zendesk, HubSpot).
-     - Delivery telemetry, conversion funnels, and flat-rate subscription billing.
-
-### 3.5 `sonaraim-app` (B2C Mobile, Desktop & Instant Web Client — React Native/TypeScript)
-
-- **Scope**: End-user application across iOS, Android, Desktop, and Instant Web / App Clips.
+- **Scope**: Developer-first B2B API gateway connecting enterprise backends, CRMs, and AI bots to the Sonaraim P2P mesh.
 - **Responsibilities**:
-  - **Intelligent Dual Inbox**: Hardware-accelerated tab separation between **Personal** (friends, family, private groups) and **Services** (verified banks, clinics, retailers, deliveries) with per-merchant consent toggles.
-  - **Native Zero-HTML Card Renderer**: Parses validated `Sonaraim Card` JSON payloads into native OS UI components (maps, date pickers, seat grids, payment sheets) and signs user interactions with the user's device key.
-  - **Passkey + WebAuthn PRF Zero-Knowledge Vault**: Generates hardware-bound passkeys on registration and derives a 256-bit key-encryption key via the **WebAuthn PRF extension** (plus cross-ecosystem PIN fallback) to unlock an encrypted cloud vault containing MLS state and chat backups.
-  - **Real-Time Voice & Video Calls**: Integrates **LiveKit** WebRTC SFUs with end-to-end media encryption (WebRTC Insertable Streams using MLS-derived epoch keys).
-  - **Private Contact Discovery**: Uses blinded hashes and Private Set Intersection (PSI) so users discover which contacts are on Sonaraim without uploading plaintext address books.
+  - **Enterprise E2EE Termination Bridge**: Terminates organization MLS 1.0 sessions inside an isolated cryptographic boundary and dispatches clean REST/gRPC events.
+  - **1-Click WhatsApp Cloud API Adapter**: Translates Meta WhatsApp Business Cloud API JSON payloads into native declarative cards with zero code changes.
+  - **Signed Declarative Card Engine**: Validates card payloads, attaches tenant Ed25519 signatures, and handles user action callbacks.
+  - **Cryptographic Consent Gate**: Distinguishes unlimited Transactional messages from Promotional campaigns requiring active, unrevoked user `ConsentTokens`.
+  - **Smart Fallback Engine**: Generates signed Instant Web / App Clip magic links (`{B2B_INSTANT_CLIP_BASE_URL}/c/{token}`) for un-onboarded recipients.
+  - **CRM Connectors**: Standardized webhooks for Chatwoot, Zendesk, HubSpot, and Salesforce.
+  - **Zero-Markup Payment Intents**: In-card checkout intent processing with zero per-message toll fees.
+
+### 3.5 `sonaraim-admin` (Dual-Console Web Application — React/Vite/Node.js)
+
+- **Scope**: Administrative web management portal separating infrastructure governance from commercial tenant tools.
+- **Responsibilities**:
+  - **Super Admin & Node Operator Console**: Real-time P2P relay mesh telemetry, Merkle epoch drift detection, and automated KYB (`did:web`) audits.
+  - **B2B Tenant Console & Visual Card Studio**: Declarative card builder, schema validation, JCS signing manifest generation, and live dispatch to `sonaraim-b2b`.
+  - **Zero-Trust Operator Authentication Gate**: HMAC-SHA256 session cookie generation (`sonaraim_operator_session`) and constant-time Bearer token comparison (`src/authGate.mjs`).
+  - **Dynamic Management**: Peer node registration (`POST /operator/peers`) and tenant provisioning (`POST /operator/tenants`).
+  - **Flat-Rate Billing Ledger**: Seat quota tracking and zero per-message fee verification.
+
+### 3.6 `sonaraim-app` (Client Application Layer & React Native Mobile)
+
+- **Scope**: B2C Mobile (iOS & Android via `sonaraim-app/mobile`), Desktop, and Instant Web / App Clip client.
+- **Responsibilities**:
+  - **`sonaraim-app/mobile` (React Native)**: Native cross-platform mobile client for iOS and Android with hardware biometric authentication, native push notification handlers, and low-latency QUIC sockets.
+  - **Intelligent Dual Inbox**: Protocol-level tab separation between **Personal Chats** (family, friends, private groups) and **Verified Service Channels** (banks, clinics, delivery alerts).
+  - **Native Zero-HTML Card Renderer**: Renders declarative cards using native OS widgets (maps, date pickers, payment sheets) while forbidding WebView execution.
+  - **Passkey + WebAuthn PRF ZK Vault**: Derives a 256-bit key-encryption key via WebAuthn PRF extension (with cross-OS PIN fallback) to unlock an encrypted cloud vault containing MLS ratchet states.
+  - **E2EE Voice & Video Calls**: Integrates LiveKit WebRTC SFUs with WebRTC Insertable Streams media encryption.
+  - **Private Contact Discovery**: Blinds address book phone hashes using client-side secrets before querying the node PSI service.
 
 ---
 
-## 4. Deep-Dive: Solving the 6 Architectural Challenges
+## 4. Production Infrastructure, Security & Disaster Recovery
 
-### 4.1 Why Decentralized P2P Mesh Instead of Blockchain Message Routing?
+### 4.1 Edge Nginx Reverse Proxy & Certbot TLS
 
-```text
-+---------------------------+----------------------------+----------------------------+
-| Metric                    | Blockchain Routing (L1/L2) | Sonaraim P2P Mesh + DID    |
-+---------------------------+----------------------------+----------------------------+
-| Message Delivery Latency  | 1,000 ms - 12,000 ms       | < 50 ms (QUIC Stream)      |
-| Per-Message Marginal Cost | Gas fee per tx / batch     | Near zero (flat relay)     |
-| Metadata Privacy          | Public ledger graph leak   | Sealed Sender (blinded)    |
-| Offline Mobile Support    | Polling RPC nodes          | Ephemeral queue + Push     |
-| Brand Verification        | On-chain smart contract    | Merkle Log + did:web/L2    |
-+---------------------------+----------------------------+----------------------------+
-```
+System Nginx acts as the single TLS ingress point:
 
-- **Data Plane (`sonaraim-node`)**: Operates entirely off-chain over `libp2p` QUIC streams. Every message is wrapped in an **MLS Ciphertext** and outer **Sealed Sender Envelope** encrypted to the recipient's ephemeral mailbox public key. The relay node sees only an opaque routing tag (`MailboxID`) and an anti-DoS proof/token—never the sender's identity.
-- **Control Plane (Key Transparency)**: Only identity registrations, key rotations, and B2B verification certificates enter the **Key Transparency Merkle Tree**. Nodes gossip signed Merkle tree heads (`SignedTreeHead`), and an optional periodic job anchors the 32-byte Merkle root hash to an L2 blockchain once per hour for immutable historical auditability at virtually zero cost.
+- **Virtual Hosts**: Routes traffic to `node.${DOMAIN}`, `b2b.${DOMAIN}`, `admin.${DOMAIN}`, and the apex client domain.
+- **Security Headers**: Enforces HTTP Strict Transport Security (HSTS) with 2-year max-age, CSP, X-Frame-Options (`DENY`), and X-Content-Type-Options (`nosniff`).
+- **Rate Limiting**: Defends endpoints using token bucket zones for API calls (`30r/s`) and authentication (`10r/m`).
 
-### 4.2 Passkey Onboarding & Cross-OS Zero-Knowledge Recovery
+### 4.2 Prometheus Metrics & Real-Time Alerting
 
-```text
-[User Device: iOS or Android]
-       |
-       +-- 1. Authenticate via Passkey (FaceID / TouchID / Biometrics)
-       |
-       +-- 2. Evaluate WebAuthn PRF Extension (or Cross-OS Recovery PIN + Argon2id)
-       |
-       v
-[256-bit Master Wrapping Key (Never leaves client RAM)]
-       |
-       +-- 3. Fetch & Decrypt Zero-Knowledge Key Vault Blob from S3/MinIO
-       |
-       v
-[Restored Identity Key + MLS Group Ratchet State + Encrypted History Index]
-```
+Continuous telemetry collection across services using `configs/prometheus/alerts.yml`:
 
-This eliminates the "lost history on phone switch" problem of device-bound messengers while preserving strict zero-knowledge privacy—neither `sonaraim-node` nor storage providers can ever decrypt the vault.
+- `SonaraimServiceDown`: Immediate critical alert when any service stops responding to `/metrics`.
+- `SonaraimAdminUpstreamUnreachable`: Warning alert when `sonaraim-admin` cannot reach upstream `sonaraim-node` or `sonaraim-b2b`.
+- `SonaraimRelayQueueBacklogHigh`: Warning alert when store-and-forward queued envelopes exceed 10,000 for 5 minutes.
 
-### 4.3 Enterprise E2EE Termination & Cryptographic Consent Gate
+### 4.3 Automated Backup & Disaster Recovery (`deploy/scripts/backup-sonaraim.sh`)
+
+Automated script providing complete ecosystem recovery:
 
 ```text
-[End User (sonaraim-app)]
-   |
-   |  1. User grants ConsentToken(scope="transactional,orders", exp=...)
-   |  2. Bidirectional MLS E2EE Session (User <-> Verified Merchant DID)
-   v
-[sonaraim-node (P2P Relay Mesh)]
-   |  - Verifies merchant Ed25519 signature & user ConsentToken for promos
-   |  - Drops unauthorized promotional spam at the edge
-   v
-[sonaraim-b2b (Enterprise Bridge — Cloud Enclave or Sovereign On-Prem)]
-   |  - Terminates Merchant MLS Session
-   |  - Emits/Accepts Clean JSON/gRPC or WhatsApp-Compatible Payloads
-   v
-[Merchant AI Agents (gRPC) / CRM (Chatwoot, Zendesk) / Payment Gateways]
+[backup-sonaraim.sh]
+        |
+        +---> 1. PostgreSQL logical dump (pg_dump -Fc) -> postgres.dump
+        |
+        +---> 2. Redis background snapshot (BGSAVE) -> appendonly.aof / dump.rdb
+        |
+        +---> 3. Node WAL and snapshot data volume -> node-data.tar.gz
+        |
+        +---> 4. Prune backups older than BACKUP_RETENTION_DAYS (default 14d)
 ```
-
-### 4.4 B2B2C "Trojan Horse" Cold-Start Onboarding (Smart Fallback)
-
-During Phase 1 adoption, businesses send critical transactional alerts (e.g., bank OTPs, lab results, live delivery tracking) to customers who may not yet have `sonaraim-app` installed:
-
-1. The merchant calls `POST /v1/messages` (or the WhatsApp compatibility endpoint) on `sonaraim-b2b`.
-2. `sonaraim-b2b` checks recipient reachability via blinded identity lookup.
-3. **If onboarded**: Delivers the native `Sonaraim Card` directly to the user's **Services Inbox** in < 50ms.
-4. **If not yet onboarded**: Triggers the **Smart Fallback Engine**, sending a compact SMS/RCS/Email containing a one-time signed URL (`https://go.sonaraim.com/c/<ephemeral-token>`).
-5. Tapping the link opens the **Instant Web / App Clip (`sonaraim-app` Web)** instantly—allowing the customer to track their order, confirm their medical appointment, or pay with 1 tap, followed by a frictionless **"Save with Passkey & Enable Instant Alerts"** prompt.
 
 ---
 
-## 5. Data Storage & Persistence Boundaries
+## 5. License
 
-| Data Category | Storage Engine | Encryption Model | Retention Policy |
-| :--- | :--- | :--- | :--- |
-| In-Transit Envelopes | `sonaraim-node` (Redis / RocksDB) | MLS Ciphertext + Sealed Sender | Ephemeral (TTL max 30 days until ACK) |
-| Media & Voice Notes | S3 / MinIO / Cloudflare R2 | Client-side AES-256-GCM (key inside MLS message) | Ephemeral transit (30 days) or Vault quota |
-| ZK Key & History Vault | S3 / MinIO / Cloudflare R2 | Client-side XChaCha20-Poly1305 (WebAuthn PRF key) | Persistent per user account |
-| Identity & DID Log | `sonaraim-node` (RocksDB + PostgreSQL) | Public keys + Ed25519 Merkle signatures | Append-only verifiable log |
-| B2B Tenant & Seat State | `sonaraim-b2b` (PostgreSQL) | At-rest disk encryption + field-level KMS | Persistent per B2B tenant |
+The Sonaraim project is licensed under the Apache License, Version 2.0. See [LICENSE](file:///home/alfonsodg/Devel/oss-projects/sonaraim/LICENSE) for details.
+
+Copyright 2026 Sonaraim Contributors.

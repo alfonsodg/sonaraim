@@ -1,27 +1,27 @@
-# Installation & Orchestration Guide (INSTALL.md)
+# Installation & Orchestration Guide (`docs/INSTALL.md`)
 
-This guide covers cloning the **Sonaraim** coordinator repository and its modular service repositories, configuring environment variables, and running verification suites.
+This guide covers cloning the **Sonaraim** coordinator repository and its modular service repositories, configuring zero-hardcode environment variables, running quality gates, and deploying on remote target servers.
 
 ---
 
 ## 1. Prerequisites
 
-Ensure the following tools (latest stable versions) are installed on your development workstation:
+Ensure the following tools (latest stable versions) are installed on your workstation:
 
-- **Git** (configured with SSH keys for GitHub/GitLab)
-- **Rust Toolchain** (`rustup`, `cargo`, `rustfmt`, `clippy`) for `sonaraim-node`, `sonaraim-protocol`, and `sonaraim-b2b`
-- **Go Toolchain** (if building Go-based connectors in `sonaraim-b2b`)
-- **Node.js & `npm`** (strictly `npm`) for `sonaraim-admin` and `sonaraim-app`
-- **Protobuf Compiler (`protoc` / `buf`)** for `sonaraim-protocol`
-- **`markdownlint` / `markdownlint-cli2`** for documentation quality verification
+- **Git** (configured with SSH keys for GitHub/GitLab access)
+- **Rust Toolchain** (`rustup`, `cargo`, `rustfmt`, `clippy`) for `sonaraim-protocol`, `sonaraim-node`, and `sonaraim-b2b`
+- **Node.js & `npm`** (`>=22.0.0`, strictly `npm`) for `sonaraim-admin`, coordinator contract tests, and `sonaraim-app`
+- **React Native Toolchain** (Android SDK, Xcode CLI tools, Watchman) for `sonaraim-app/mobile`
+- **Markdownlint CLI** (`npx --yes markdownlint-cli2`) for documentation quality assurance
+- **OpenSSL & Certbot** (on target deployment hosts for TLS automation)
 
-> **Note**: In accordance with engineering rules, never install Docker engines or database servers directly on local workstations unless explicitly authorized; full container orchestration runs on designated remote test environments defined in `REMOTE.md`.
+> **Important**: In compliance with engineering rules, never install Docker engines or database servers directly on local development workstations; full multi-container orchestration runs on designated remote test environments documented in `REMOTE.md`.
 
 ---
 
 ## 2. Multi-Service Workspace Layout
 
-Clone the coordinator repository first, then clone the service repositories as siblings or nested workspace folders (already gitignored in the coordinator `.gitignore`):
+Clone the coordinator repository first, then clone the modular service repositories as siblings or nested submodules (already excluded in `.gitignore`):
 
 ```bash
 # 1. Clone the Coordinator / Control repository
@@ -31,7 +31,7 @@ cd sonaraim
 # 2. Checkout the integration branch
 git checkout develop
 
-# 3. Clone service repositories (as they are initialized)
+# 3. Clone all modular service repositories
 git clone git@github.com:alfonsodg/sonaraim-protocol.git
 git clone git@github.com:alfonsodg/sonaraim-node.git
 git clone git@github.com:alfonsodg/sonaraim-b2b.git
@@ -43,47 +43,64 @@ git clone git@github.com:alfonsodg/sonaraim-app.git
 
 ## 3. Environment Configuration
 
-Copy the sample environment file and populate all required variables:
+Copy the sample environment configuration and generate cryptographic secrets:
 
 ```bash
+# Copy sample environment configuration
 cp samples/.env.example .env
-cp configs/node.example.toml configs/node.toml
+
+# Verify host deployment details in REMOTE.md
+cat REMOTE.md
 ```
 
-Verify that `REMOTE.md` exists at the repository root and contains the target server coordinates for `dev`, `qa`, and `prod`.
+Ensure all variables in `.env` are populated according to [docs/CONFIGURATION.md](CONFIGURATION.md).
 
 ---
 
-## 4. Running Quality Gates & Contract Validation
+## 4. Running Verification Suites & Quality Gates
 
-Before committing any changes in the coordinator repository:
+Before committing in any repository, execute its canonical test suite and markdown linter:
 
 ```bash
-# 1. Validate all Markdown documentation (0 errors allowed)
-markdownlint README.md docs/*.md
+# 1. Coordinator contract & schema tests
+node --test tests/contracts.test.mjs
+npx --yes markdownlint-cli2 "*.md" "docs/*.md"
 
-# 2. Validate JSON Schemas and sample payloads
-node --input-type=module -e '
-import fs from "node:fs";
-JSON.parse(fs.readFileSync("configs/schemas/sonaraim-card.schema.json", "utf8"));
-JSON.parse(fs.readFileSync("samples/sample-order-card.json", "utf8"));
-console.log("JSON schemas and sample payloads are valid.");
-'
+# 2. Protocol crate verification
+cargo test --manifest-path sonaraim-protocol/Cargo.toml
+(cd sonaraim-protocol && npx --yes markdownlint-cli2 "*.md" "docs/*.md")
+
+# 3. Node relay crate verification
+cargo test --manifest-path sonaraim-node/Cargo.toml
+(cd sonaraim-node && npx --yes markdownlint-cli2 "*.md" "docs/*.md")
+
+# 4. Enterprise B2B crate verification
+cargo test --manifest-path sonaraim-b2b/Cargo.toml
+(cd sonaraim-b2b && npx --yes markdownlint-cli2 "*.md" "docs/*.md")
+
+# 5. Admin console test verification
+npm test --prefix sonaraim-admin
+(cd sonaraim-admin && npx --yes markdownlint-cli2 "*.md" "docs/*.md")
 ```
 
 ---
 
-## 5. Remote Container Orchestration (User-Directed)
+## 5. Remote Container Deployment (User-Directed)
 
-When authorized to deploy on the remote target environment specified in `REMOTE.md`:
+When authorized to deploy to the remote host defined in `REMOTE.md`:
 
 ```bash
-# On the remote server (with .env configured in /opt/sonaraim/<env>)
+# 1. Render Nginx TLS configuration
+envsubst '${SONARAIM_PUBLIC_DOMAIN} ${NODE_HTTP_PORT} ${B2B_HTTP_PORT} ${ADMIN_HTTP_PORT} ${APP_WEB_PORT}' \
+  < configs/nginx/sonaraim.conf.template > /etc/nginx/sites-available/sonaraim.conf
+systemctl reload nginx
+
+# 2. Launch container stack via Docker Compose
 docker compose -f deploy/compose/docker-compose.yml --env-file .env up -d
 
-# Verify health endpoints across all services
-curl -fsS http://127.0.0.1:8040/health
-curl -fsS http://127.0.0.1:8042/health
-curl -fsS http://127.0.0.1:8044/health
-curl -fsS http://127.0.0.1:8045/health
+# 3. Verify health across all services
+curl -fsS "http://127.0.0.1:${NODE_HTTP_PORT}/health"
+curl -fsS "http://127.0.0.1:${B2B_HTTP_PORT}/health"
+curl -fsS "http://127.0.0.1:${ADMIN_HTTP_PORT}/health"
+curl -fsS "http://127.0.0.1:${APP_WEB_PORT}/health"
 ```

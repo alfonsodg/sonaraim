@@ -1,4 +1,4 @@
-# System Architecture Diagrams (DIAGRAMS.md)
+# System Architecture Diagrams (`docs/DIAGRAMS.md`)
 
 This document contains all Mermaid diagrams for the **Sonaraim** ecosystem. Architectural prose and ASCII representations are maintained in [docs/ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -9,12 +9,16 @@ This document contains all Mermaid diagrams for the **Sonaraim** ecosystem. Arch
 ```mermaid
 flowchart TB
     subgraph Clients["Client & Console Layer"]
-        App["sonaraim-app<br/>(Mobile, Desktop, Instant Web/Clip)"]
+        App["sonaraim-app<br/>(React Native Mobile iOS/Android, Desktop, Web Clip)"]
         Admin["sonaraim-admin<br/>(Node Operator & B2B SaaS Console)"]
     end
 
+    subgraph Coordinator["Coordinator & Control (sonaraim)"]
+        Control["sonaraim<br/>(Nginx, Compose, Alerts, Backup, Schemas)"]
+    end
+
     subgraph Shared["Shared Contracts & Crypto"]
-        Proto["sonaraim-protocol<br/>(Protobuf, OpenMLS, Card Schema, SDKs)"]
+        Proto["sonaraim-protocol<br/>(Wire Specs, OpenMLS, Card Schema, SDKs)"]
     end
 
     subgraph CoreMesh["Decentralized Core Layer (Rust)"]
@@ -42,6 +46,10 @@ flowchart TB
         S3["S3 / MinIO / R2<br/>(Encrypted Media & ZK Vault)"]
         BizBackend["Merchant AI Agents (gRPC) & CRMs<br/>(Chatwoot, Zendesk, HubSpot)"]
     end
+
+    Control -.->|"Orchestrates"| Node1
+    Control -.->|"Orchestrates"| B2B
+    Control -.->|"Orchestrates"| Admin
 
     App <-->|"QUIC / WebTransport<br/>(MLS E2EE + Sealed Sender)"| Node1
     App <-->|"WebRTC E2EE Media"| LiveKit
@@ -145,7 +153,7 @@ sequenceDiagram
 
 ---
 
-## 5. B2B2C "Trojan Horse" Smart Fallback & Instant Onboarding Flow
+## 5. B2B2C Smart Fallback & Instant Onboarding Flow
 
 ```mermaid
 stateDiagram-v2
@@ -168,4 +176,43 @@ stateDiagram-v2
 
     NativeDelivery --> [*]
     ActivateSocialGraph --> [*]
+```
+
+---
+
+## 6. Edge Ingress, Nginx TLS & Monitoring Architecture
+
+```mermaid
+flowchart TB
+    ClientTraffic["Client & Merchant Traffic"]
+    Nginx["System Nginx Reverse Proxy<br/>(TLS Certbot + Rate Limiting)"]
+
+    subgraph Backends["Containerized Service Backends"]
+        NodeSrv["sonaraim-node<br/>(:NODE_HTTP_PORT)"]
+        B2bSrv["sonaraim-b2b<br/>(:B2B_HTTP_PORT)"]
+        AdminSrv["sonaraim-admin<br/>(:ADMIN_HTTP_PORT)"]
+        WebSrv["sonaraim-app-web<br/>(:APP_WEB_PORT)"]
+    end
+
+    subgraph Observability["Prometheus & Backup Automation"]
+        Prom["Prometheus Server<br/>(Scrapes /metrics)"]
+        Alerts["Alertmanager<br/>(configs/prometheus/alerts.yml)"]
+        Backup["backup-sonaraim.sh<br/>(pg_dump + Redis BGSAVE + WAL tar)"]
+    end
+
+    ClientTraffic -->|"node.domain"| Nginx
+    ClientTraffic -->|"b2b.domain"| Nginx
+    ClientTraffic -->|"admin.domain"| Nginx
+    ClientTraffic -->|"apex domain"| Nginx
+
+    Nginx -->|"Proxy 8040"| NodeSrv
+    Nginx -->|"Proxy 8042"| B2bSrv
+    Nginx -->|"Proxy 8044"| AdminSrv
+    Nginx -->|"Proxy 8045"| WebSrv
+
+    Prom -->|"/metrics"| NodeSrv
+    Prom -->|"/metrics"| B2bSrv
+    Prom -->|"/metrics"| AdminSrv
+    Prom --> Alerts
+    Backup -->|Archives| Backends
 ```
