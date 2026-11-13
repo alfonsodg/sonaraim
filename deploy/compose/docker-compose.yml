@@ -131,3 +131,14 @@ services:
       PUBLIC_LIVEKIT_URL: ${PUBLIC_LIVEKIT_URL}
       APP_SESSION_SECRET: ${APP_SESSION_SECRET:-}
       SONARAIM_REQUIRE_AUTH: ${SONARAIM_REQUIRE_AUTH:-false}
+
+  livekit:
+    image: ${LIVEKIT_IMAGE:-livekit/livekit-server:latest}
+    profiles: ["calls"]
+    restart: unless-stopped
+    command: --dev --bind 0.0.0.0
+    ports:
+      - "127.0.0.1:${LIVEKIT_HTTP_PORT:-7880}:7880"
+      - "${LIVEKIT_RTC_PORT:-7881}:7881/tcp"
+    environment:
+      LIVEKIT_KEYS: ${LIVEKIT_KEYS}
