@@ -2,22 +2,28 @@
 
 > Next-Generation Decentralized B2C Messaging & Verifiable B2B Transactional Ecosystem.
 
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Security: Zero-Trust E2EE](https://img.shields.io/badge/Security-Zero--Trust%20E2EE-green.svg)](SECURITY.md)
+[![Protocol: IETF MLS RFC 9420](https://img.shields.io/badge/Protocol-IETF%20MLS%20RFC%209420-orange.svg)](https://datatracker.ietf.org/doc/html/rfc9420)
+[![Network: Federated P2P](https://img.shields.io/badge/Network-Federated%20P2P-cyan.svg)](#-core-architectural-pillars)
+[![Architecture: Multi-Service](https://img.shields.io/badge/Architecture-Multi--Service%20Ecosystem-purple.svg)](#-multi-service-ecosystem-architecture)
+
 Sonaraim is an open, high-performance messaging and interactive commerce platform engineered to replace legacy centralized messengers and predatory per-message B2B toll gates. It combines a **Rust-powered decentralized P2P relay mesh (`libp2p` + QUIC + IETF MLS)** with a **developer-first Enterprise B2B Gateway**, **Zero-HTML Declarative Interactive Cards**, and **Passkey-backed Zero-Knowledge identity**.
 
 ---
 
-## Why Sonaraim?
+## ⚡ Why Sonaraim?
 
 To overcome the network effect of incumbent platforms like WhatsApp, Sonaraim delivers immediate, asymmetric value to both sides of the market:
 
-### For End Users (B2C)
+### 📱 For End Users (B2C)
 
 - **True Sovereignty & Metadata Privacy**: End-to-end encryption (IETF MLS RFC 9420) paired with **Sealed Sender** routing—relay nodes deliver encrypted envelopes to cryptographic mailboxes without knowing who is messaging whom.
 - **Intelligent Dual Inbox (Personal vs. Services)**: Native separation from day one between **Personal Chats** (family, friends, private groups) and **Verified Service Channels** (banks, healthcare clinics, deliveries, invoices). Zero commercial clutter in personal spaces, with one-tap cryptographic consent revocation.
 - **Zero-Redirect Actionable Chat (`Sonaraim Cards`)**: Instead of slow external web links or insecure HTML WebViews, verified businesses send native, cryptographically signed declarative cards directly inside the conversation—live delivery tracking, interactive seat selection, shopping carts, appointment booking, and one-tap payments.
 - **Frictionless Portable Identity**: Instant onboarding via **Passkeys (WebAuthn PRF)** backed by a cross-platform **Zero-Knowledge Encrypted Vault**. Users never manage raw seed phrases and never lose encrypted history when switching between iOS and Android.
 
-### For Businesses & Developers (B2B)
+### 💳 For Businesses & Developers (B2B)
 
 - **End of the "Per-Message Tax"**: Predictable flat-rate SaaS capacity pricing per seat or node capacity—no arbitrary per-template fees for OTPs, utility alerts, or transactional notifications.
 - **Toll-Free AI & Native CRM Orchestration**: Connect custom AI agents and existing CRMs (Chatwoot, Zendesk, HubSpot, Salesforce) via low-latency gRPC and signed Webhooks with zero token markups or commercial content lock-in.
@@ -26,7 +32,19 @@ To overcome the network effect of incumbent platforms like WhatsApp, Sonaraim de
 
 ---
 
-## Multi-Service Ecosystem Architecture
+## 📸 Screenshots
+
+| Dual Inbox (Desktop Interface) | Dual Inbox (Mobile App Experience) |
+| :---: | :---: |
+| ![Dual Inbox Desktop](docs/images/app-inbox-desktop.png) | ![Dual Inbox Mobile](docs/images/app-inbox-mobile.png) |
+
+| Instant Clip Smart Fallback | Admin Operator Telemetry Console | Admin Visual Card Studio |
+| :---: | :---: | :---: |
+| ![Instant Clip Smart Fallback](docs/images/app-instant-clip.png) | ![Admin Operator Console](docs/images/admin-operator.png) | ![Admin Card Studio](docs/images/admin-studio.png) |
+
+---
+
+## 🌐 Multi-Service Ecosystem Architecture
 
 This repository (`sonaraim`) serves as the **Coordinator / Control Repository** for the Sonaraim ecosystem. It holds global architecture specifications, cross-service contracts, deployment orchestration, and shared schemas across all 6 modular services.
 
@@ -41,7 +59,69 @@ This repository (`sonaraim`) serves as the **Coordinator / Control Repository** 
 
 ---
 
-## Core Architectural Pillars
+## 🏗️ System Topology & Data Flow
+
+The following ASCII diagram illustrates the interaction between end users, enterprise systems, edge infrastructure, and decentralized mesh nodes:
+
+```text
++-----------------------------------------------------------------------------------+
+|                           SONARAIM ECOSYSTEM TOPOLOGY                             |
++-----------------------------------------------------------------------------------+
+|                                                                                   |
+|  [B2C Mobile & Web Clients]                [Enterprise & B2B Backends]            |
+|  - iOS & Android (React Native Expo 51)    - CRM Systems (Chatwoot, Zendesk, etc) |
+|  - Desktop (Tauri) / PWA                   - AI Agents & Webhook Automations      |
+|  - Dual Inbox (Personal vs Services)       - WhatsApp Cloud API Migration callers |
+|            |                                              |                       |
+|            | TLS / HTTPS                                  | REST / Webhooks       |
+|            v                                              v                       |
+|  +-----------------------------------------------------------------------------+  |
+|  |                            EDGE REVERSE PROXY                               |  |
+|  |             (Nginx + Certbot TLS + Rate Limiting + Health Router)           |  |
+|  +-------------------------------------+---------------------------------------+  |
+|                                        |                                          |
+|                +-----------------------+----------------------+                   |
+|                |                                              |                   |
+|                v                                              v                   |
+|  +---------------------------+              +----------------------------------+  |
+|  |     sonaraim-node         |              |          sonaraim-b2b            |  |
+|  |  (Core Relay & Ledger)    |              |     (Enterprise E2EE Bridge)     |  |
+|  |                           |  Submits     |                                  |  |
+|  | * libp2p + QUIC Mesh      |<-------------| * WhatsApp Cloud API Adapter     |  |
+|  | * Ephemeral Sealed Queues |  Envelopes   | * Cryptographic Consent Gate     |  |
+|  | * Key Transparency Merkle |              | * Smart Fallback Engine          |  |
+|  | * UDP Gossip Transport    |              | * Signed Card Generator          |  |
+|  | * Blind PSI Discovery     |              | * Zero-Markup Billing Ledger     |  |
+|  +-------------+-------------+              +-----------------+----------------+  |
+|                ^                                              |                   |
+|                |                                              |                   |
+|                | Telemetry / Peer Mgmt                        | Dispatch / Quota  |
+|                +-----------------------+----------------------+                   |
+|                                        |                                          |
+|                                        v                                          |
+|                     +------------------------------------+                        |
+|                     |          sonaraim-admin            |                        |
+|                     |  (Dual-Console Web Application)    |                        |
+|                     |                                    |                        |
+|                     | * Node Operator Mesh Telemetry     |                        |
+|                     | * Verifiable did:web KYB Auditor   |                        |
+|                     | * Visual Sonaraim Card Studio      |                        |
+|                     | * Tenant Quota & Key Rotation      |                        |
+|                     +------------------------------------+                        |
+|                                                                                   |
+|  SHARED FOUNDATION:                                                               |
+|  - sonaraim-protocol: RFC 9420 OpenMLS, Sealed Envelopes, Card Schemas            |
+|  - configs/schemas: Strict 2020-12 Declarative Sonaraim Card validation           |
+|  - deploy/compose: Multi-service container orchestration with zero-downtime       |
++-----------------------------------------------------------------------------------+
+```
+
+> [!NOTE]
+> For interactive Mermaid sequence diagrams, group ratchet state transitions, and WebRTC calling topologies, see [docs/DIAGRAMS.md](docs/DIAGRAMS.md).
+
+---
+
+## 🔐 Core Architectural Pillars
 
 1. **Dual-Plane Decentralization (Speed without Blockchain Bottlenecks)**:
    - **Data Plane (`sonaraim-node`)**: Real-time message routing runs over a `libp2p` QUIC/WebTransport mesh with sub-50ms latency, MLS group ratcheting, and S3-compatible client-encrypted blob storage. No message ever waits for blockchain block finality or pays per-message gas fees.
@@ -60,7 +140,7 @@ This repository (`sonaraim`) serves as the **Coordinator / Control Repository** 
 
 ---
 
-## Repository Structure
+## 🧩 Repository Structure
 
 ```text
 sonaraim/
@@ -95,7 +175,7 @@ sonaraim/
 
 ---
 
-## Documentation Catalog
+## 📄 Documentation Catalog
 
 - **[Architecture Specification](docs/ARCHITECTURE.md)** — In-depth design of the 6 services, React Native mobile client, P2P MLS transport, Key Transparency log, and Enterprise E2EE Bridge.
 - **[Visual Diagrams (Mermaid)](docs/DIAGRAMS.md)** — End-to-end topology, sequence, and state diagrams.
@@ -108,7 +188,7 @@ sonaraim/
 
 ---
 
-## License
+## 📜 License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
 
