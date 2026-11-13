@@ -50,12 +50,12 @@ This repository (`sonaraim`) serves as the **Coordinator / Control Repository** 
 
 | Service Repository | Primary Stack | Responsibility |
 | :--- | :--- | :--- |
-| **`sonaraim`** *(This Repo)* | Markdown, JSON Schema, Docker, Helm | Control repository: global architecture, card schemas, multi-service orchestration, Nginx templates, Prometheus alerts, and backup scripts. |
-| **`sonaraim-protocol`** | Protobuf, Rust, TypeScript, Go | Formal wire specifications, Sealed Sender envelopes, OpenMLS cryptographic wrappers, and `Sonaraim Card Spec` validator. |
-| **`sonaraim-node`** | Rust (`libp2p`, QUIC, OpenMLS) | Decentralized P2P/Federated core relay node, ephemeral store-and-forward queues, UDP gossip transport, and Key Transparency Merkle log. |
-| **`sonaraim-b2b`** | Rust / Go (gRPC, REST, PostgreSQL, Redis) | Enterprise E2EE Termination Bridge, WhatsApp Cloud API compatibility adapter, Signed Card Engine, Consent Gate, and Smart Fallback Engine. |
-| **`sonaraim-admin`** | React, TypeScript, Vite, Node.js | Dual-console web app for **Node Operators** (mesh telemetry, Merkle sync, KYB) and **B2B Tenants** (seat quotas, visual Card Studio, webhooks). |
-| **`sonaraim-app`** | React Native (`sonaraim-app/mobile`), Expo/EAS, TypeScript, LiveKit | B2C Mobile (iOS & Android via Expo/EAS native builds), Desktop, and Instant Web client with Dual Inbox, WhatsApp-parity features (E2EE media, MLS groups, reactions/receipts, 24h status), declarative cards, and Passkey ZK Vault. |
+| **[`sonaraim`](https://github.com/alfonsodg/sonaraim)** *(This Repo)* | Markdown, JSON Schema, Docker, Helm | Control repository: global architecture, card schemas, multi-service orchestration, Nginx templates, Prometheus alerts, and backup scripts. |
+| **[`sonaraim-protocol`](https://github.com/alfonsodg/sonaraim-protocol)** | Protobuf, Rust, TypeScript, Go | Formal wire specifications, Sealed Sender envelopes, OpenMLS cryptographic wrappers, and `Sonaraim Card Spec` validator. |
+| **[`sonaraim-node`](https://github.com/alfonsodg/sonaraim-node)** | Rust (`libp2p`, QUIC, OpenMLS) | Decentralized P2P/Federated core relay node, ephemeral store-and-forward queues, UDP gossip transport, and Key Transparency Merkle log. |
+| **[`sonaraim-b2b`](https://github.com/alfonsodg/sonaraim-b2b)** | Rust / Go (gRPC, REST, PostgreSQL, Redis) | Enterprise E2EE Termination Bridge, WhatsApp Cloud API compatibility adapter, Signed Card Engine, Consent Gate, and Smart Fallback Engine. |
+| **[`sonaraim-admin`](https://github.com/alfonsodg/sonaraim-admin)** | React, TypeScript, Vite, Node.js | Dual-console web app for **Node Operators** (mesh telemetry, Merkle sync, KYB) and **B2B Tenants** (seat quotas, visual Card Studio, webhooks). |
+| **[`sonaraim-app`](https://github.com/alfonsodg/sonaraim-app)** | React Native (`sonaraim-app/mobile`), Expo/EAS, TypeScript, LiveKit | B2C Mobile (iOS & Android via Expo/EAS native builds), Desktop, and Instant Web client with Dual Inbox, WhatsApp-parity features (E2EE media, MLS groups, reactions/receipts, 24h status), declarative cards, and Passkey ZK Vault. |
 
 ---
 
