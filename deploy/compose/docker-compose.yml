@@ -98,8 +98,11 @@ services:
       B2B_BOOTSTRAP_TENANT_DID: ${B2B_BOOTSTRAP_TENANT_DID:-}
       B2B_BOOTSTRAP_API_KEY: ${B2B_BOOTSTRAP_API_KEY:-}
       B2B_ADMIN_API_KEY: ${B2B_ADMIN_API_KEY:-}
+      B2B_STORAGE_PATH: ${B2B_STORAGE_PATH}
       POSTGRES_DSN: ${POSTGRES_DSN}
       REDIS_URL: ${REDIS_URL}
+    volumes:
+      - ${B2B_DATA_VOLUME_PATH}:/var/lib/sonaraim-b2b
 
   sonaraim-admin:
     image: ${ADMIN_IMAGE}
