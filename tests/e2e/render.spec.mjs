@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { HOSTS, VIEWPORTS } from './hosts.mjs';
+
+// Screenshots go to the repo-root debug/ dir (gitignored), never tracked.
+const DEBUG_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'debug');
+fs.mkdirSync(DEBUG_DIR, { recursive: true });
 
 test.describe('render and screenshots', () => {
   test('admin GET /login renders HTML + screenshots at 3 viewports', async ({ page }) => {
@@ -15,7 +22,7 @@ test.describe('render and screenshots', () => {
 
     for (const vp of VIEWPORTS) {
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.screenshot({ path: `debug/admin-login-${vp.name}-${vp.width}x${vp.height}.png` });
+      await page.screenshot({ path: path.join(DEBUG_DIR, `admin-login-${vp.name}-${vp.width}x${vp.height}.png`) });
     }
     expect(errors, `console errors on /login: ${errors.join('; ')}`).toEqual([]);
   });
@@ -28,7 +35,7 @@ test.describe('render and screenshots', () => {
     page.on('pageerror', (err) => errors.push(String(err)));
     await page.goto(`${HOSTS.app}/`, { waitUntil: 'domcontentloaded' });
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.screenshot({ path: 'debug/app-home-401-gate-desktop-1920x1080.png' });
+    await page.screenshot({ path: path.join(DEBUG_DIR, 'app-home-401-gate-desktop-1920x1080.png') });
     expect(errors, `console errors on app /: ${errors.join('; ')}`).toEqual([]);
   });
 });
