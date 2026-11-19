@@ -1,0 +1,14 @@
+{
+  "name": "sonaraim-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Versioned Playwright E2E suite for Sonaraim public URLs",
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test --config=playwright.config.mjs",
+    "e2e:install": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.1"
+  }
+}

@@ -1,0 +1,49 @@
+name: E2E public URLs
+
+on:
+  push:
+    branches: [develop]
+    paths: ["tests/e2e/**", ".github/workflows/e2e.yml"]
+  pull_request:
+    branches: [develop]
+    paths: ["tests/e2e/**", ".github/workflows/e2e.yml"]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-public:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E suite (public; auth specs skip without token)
+        run: npx playwright test --config=playwright.config.mjs
+        env:
+          E2E_BASE_DOMAIN: sonaraim.apulab.info
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: debug/*.png
+          if-no-files-found: warn
