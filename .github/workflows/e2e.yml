@@ -16,7 +16,8 @@ permissions:
 
 jobs:
   e2e-public:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.55.1 has no ubuntu-26.04 browser mapping.
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: tests/e2e
