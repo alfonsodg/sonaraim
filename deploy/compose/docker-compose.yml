@@ -30,7 +30,7 @@ services:
       retries: 5
 
   minio:
-    image: ${MINIO_IMAGE}
+    image: ${MINIO_IMAGE:-minio/minio:latest}
     restart: unless-stopped
     command: ["server", "/data"]
     environment:
