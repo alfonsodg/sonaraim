@@ -82,6 +82,38 @@ test("deploy/compose/docker-compose.yml parameterizes images, ports, and secrets
   assert.doesNotMatch(composeContent, /POSTGRES_PASSWORD:\s*["']?[A-Za-z0-9]{4,}["']?$/m);
 });
 
+test("samples/.env.example documents every compose variable (no missing defaults)", () => {
+  const composeContent = fs.readFileSync(
+    path.join(ROOT, "deploy/compose/docker-compose.yml"),
+    "utf8"
+  );
+  const envContent = fs.readFileSync(path.join(ROOT, "samples/.env.example"), "utf8");
+  const composeVars = new Set(
+    [...composeContent.matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g)].map(
+      (m) => m[1]
+    )
+  );
+  const documentedVars = new Set(
+    [...envContent.matchAll(/^([A-Za-z_][A-Za-z0-9_]*)=/gm)].map((m) => m[1])
+  );
+  const missing = [...composeVars].filter((v) => !documentedVars.has(v));
+  assert.deepEqual(missing, [], `samples/.env.example is missing compose vars: ${missing.join(", ")}`);
+});
+
+test("deploy/compose/docker-compose.yml livekit service is optional under calls profile only", () => {
+  const composeContent = fs.readFileSync(
+    path.join(ROOT, "deploy/compose/docker-compose.yml"),
+    "utf8"
+  );
+  assert.match(composeContent, /livekit:/);
+  assert.match(composeContent, /profiles:\s*\["calls"\]/);
+  assert.doesNotMatch(composeContent, /image:\s*livekit\/livekit-server:latest/);
+  assert.match(composeContent, /\$\{LIVEKIT_IMAGE:-/);
+  const envContent = fs.readFileSync(path.join(ROOT, "samples/.env.example"), "utf8");
+  assert.match(envContent, /^LIVEKIT_KEYS=/m);
+  assert.match(envContent, /^LIVEKIT_RTC_PORT=/m);
+});
+
 test("configs/nginx/sonaraim.conf.template and configs/prometheus/alerts.yml are parameterized", () => {
   const nginx = fs.readFileSync(path.join(ROOT, "configs/nginx/sonaraim.conf.template"), "utf8");
   assert.match(nginx, /\$\{SONARAIM_PUBLIC_DOMAIN\}/);
